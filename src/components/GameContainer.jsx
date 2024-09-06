@@ -12,7 +12,6 @@ function GameContainer() {
       backgroundColor: '#697e96',
       scale: {
          mode: Phaser.Scale.FIT,
-         // autoCenter: Phaser.Scale.CENTER_BOTH,
       },
       scene: DinoScene,
       physics: {
@@ -20,7 +19,8 @@ function GameContainer() {
          arcade: {
             gravity: {
                y: 2000
-            }
+            },
+            // debug: true
          }
       },
       // pixelArt: true

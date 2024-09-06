@@ -8,6 +8,6 @@ export default function (scene) {
 
    scene.anims.create({
       key: 'idle',
-      frames: [{ key: 'dino', frame: 0 }],
+      frames: [{ key: 'dino', frame: 0 }]
    })
 }
