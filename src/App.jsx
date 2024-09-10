@@ -5,7 +5,8 @@ function App() {
    return (
       <>
          <GameContainer />
-         <div style={{ fontFamily: 'font1', visibility: 'hidden' }}>.</div>
+         {/* TODO: find a better way to use a custom font family inside canvas */}
+         <div style={{ fontFamily: '"Press Start 2P"', visibility: 'hidden' }}>.</div>
       </>
    )
 }

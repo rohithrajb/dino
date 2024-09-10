@@ -1,8 +1,8 @@
 export default function (scene) {
    scene.anims.create({
       key: 'run',
-      frames: scene.anims.generateFrameNumbers('dino', { start: 1, end: 2 }),
-      frameRate: 10,
+      frames: scene.anims.generateFrameNumbers('dino', { frames: [2, 3] }),
+      frameRate: 13,
       repeat: -1,
    })
 

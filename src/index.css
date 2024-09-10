@@ -1,10 +1,21 @@
+/* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
+
 :root {
    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
 
+/* @font-face {
+   font-family: 'font1';
+   src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+   font-weight: 400;
+   font-weight: normal;
+} */
+
+/* press-start-2p-regular - latin */
 @font-face {
-   font-family: font1;
-   src: url('assets/font.ttf');
-   font-weight:400;
-   font-weight:normal;
+   font-family: 'Press Start 2P';
+   font-style: normal;
+   font-weight: 400;
+   src: url('assets/fonts/press-start-2p.woff2') format('woff2'),
+         url('assets/fonts/press-start-2p.ttf') format('truetype'); 
 }
