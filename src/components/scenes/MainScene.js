@@ -20,13 +20,12 @@ export class DinoScene extends Phaser.Scene {
    }
 
    preload() {
-      this.load.image('mountains-back', 'assets/mountains-back.png')
-      this.load.image('mountains-mid', 'assets/mountains-mid.png')
-      this.load.image('mountains-front', 'assets/mountains-front.png')
-      this.load.image('ground', 'assets/objects-sprites.png')
-      // TODO: use the clearer spritesheet for dino and cactus
-      this.load.spritesheet('dino', 'assets/dino.png', { frameWidth: 88, frameHeight: 97 })
-      this.load.spritesheet('cactus', 'assets/cactuses.png', { frameWidth: 50, frameHeight: 101 })
+      this.load.image('mountains-back', 'game-assets/mountains-back.png')
+      this.load.image('mountains-mid', 'game-assets/mountains-mid.png')
+      this.load.image('mountains-front', 'game-assets/mountains-front.png')
+      this.load.image('ground', 'game-assets/ground.png')
+      this.load.spritesheet('dino', 'game-assets/dino.png', { frameWidth: 88, frameHeight: 97 })
+      this.load.spritesheet('cactus', 'game-assets/cactuses.png', { frameWidth: 50, frameHeight: 101 })
 
       this.load.on('complete', () => {
          generatePlayerAnimations(this)
@@ -35,34 +34,54 @@ export class DinoScene extends Phaser.Scene {
 
    create() {
       this.mountainsBack = this.add
-         .tileSprite(0, this.height - 894, this.width, 894, 'mountains-back')
+         .tileSprite(0, this.height - 894, Number.MAX_SAFE_INTEGER, 894, 'mountains-back')
          .setOrigin(0, 0)
+         .setScrollFactor(0)
 
       this.mountainsMid = this.add
-         .tileSprite(0, this.height - 770, this.width, 770, 'mountains-mid')
+         .tileSprite(0, this.height - 770, Number.MAX_SAFE_INTEGER, 770, 'mountains-mid')
          .setOrigin(0, 0)
+         .setScrollFactor(0)
 
       this.mountainsFront = this.add
-         .tileSprite(0, this.height - 482, this.width, 482, 'mountains-front')
+         .tileSprite(0, this.height - 482, Number.MAX_SAFE_INTEGER, 482, 'mountains-front')
          .setOrigin(0, 0)
+         .setScrollFactor(0)
 
-      // setting the height as -28 considers the 28px from the bottom of the spritesheet
+      // different approaches for the ground/platform
+
+      // 1. wrap approach: it is very complicated, but better in terms of memory management
+      // this.platform = this.physics.add
+      //    .sprite(0, this.height - 100, 'ground')
+      //    .setOrigin(0, 0)
+      //    .setSize(2404, -25)
+      // this.physics.world.setBounds(0, 0, 2300, this.height)
+      // this.platform.body.setImmovable().setAllowGravity(false)
+
+      // 2.(working): making the platform physics-enabled, immovable, unaffected by gravity and moving backwards at the same speed as the cactuses
+      // this.platform.body.setImmovable().setAllowGravity(false).setVelocityX(-250).setFriction(0)
+
+      // 3.(best approach): making it a repeating tilesprite and following camera
+      // height -25 because the player should collide with the bottom bound of the ground, not the top border
       this.platform = this.add
-         .tileSprite(0, this.height - 100, this.width + 100, -28, 'ground')
+         .tileSprite(0, this.height - 100, Number.MAX_SAFE_INTEGER, -25, 'ground')
          .setOrigin(0, 0)
+         .setScrollFactor(0)
 
-      // physics.add.existing gives physics to any game object
       this.physics.add.existing(this.platform, true)
 
       // TODO: make the player a seperate reusable component
-      // scaling the dino's size according to width as standard
       this.player = this.physics.add
-         .sprite(80, this.height - (40 / 100) * this.height, 'dino')
-         .setOrigin(0, 0)
+         .sprite(80, this.height - 100, 'dino')
+         .setOrigin(0, 1)
          .setScale(0.6)
-         .setCollideWorldBounds(true)
 
       this.physics.add.collider(this.player, this.platform)
+
+      // camera
+      this.myCam = this.cameras.main
+      this.myCam.setBounds(0, 0, Number.MAX_SAFE_INTEGER, this.height)
+      this.myCam.startFollow(this.player, true, 1, 1, -120)
 
       this.scoreText = this.add
          .text(
@@ -70,13 +89,14 @@ export class DinoScene extends Phaser.Scene {
             (20 / 667) * this.height,
             'HI ' + this.highScore + ' 0',
             {
-               fontFamily: 'font1',
-               fontSize: (12 / 375) * this.width,
+               fontFamily: '"Press Start 2P"',
+               fontSize: 20,
             }
          )
          .setOrigin(1, 0)
+         .setScrollFactor(0)
 
-      this.pressToPlay = this.add
+      this.pressToPlayText = this.add
          .text(this.width / 2, this.height / 2, 'Press to play', {
             textAlign: 'center',
             fontFamily: '"Press Start 2P"',
@@ -84,9 +104,19 @@ export class DinoScene extends Phaser.Scene {
          })
          .setOrigin(0.5, 0.5)
 
+      this.gameOverText = this.add
+         .text(this.width / 2, this.height / 2, 'Game over', {
+            textAlign: 'center',
+            fontFamily: '"Press Start 2P"',
+            fontSize: 20,
+         })
+         .setOrigin(0.5, 0.5)
+         .setScrollFactor(0)
+      this.gameOverText.visible = false
+
       this.input.on('pointerdown', () => {
          if (!this.gameStart) {
-            this.pressToPlay.destroy(true)
+            this.pressToPlayText.destroy(true)
             this.gameStart = true
             this.game.resume()
          }
@@ -96,11 +126,23 @@ export class DinoScene extends Phaser.Scene {
             // refer: https://stackoverflow.com/questions/48836168/falling-from-long-distances-can-make-phaser-sprite-to-ignore-collision-over-tile
             this.player.setVelocityY(-700)
          }
+
+         if (this.gameOver) {
+            this.gameStart = false
+            this.gameOver = false
+            this.cactuses = []
+            this.timeFromLastCactus = 0
+            this.timeToNextCactus = 2000
+            this.score = 0
+            this.highScore = localStorage.getItem('highscore')
+            this.loopTimer = 0
+            this.scene.restart()
+         }
       })
    }
 
    update(time, delta) {
-      // TODO: this way of getting to start the game on click is pretty good, but may not be the best. research if there is a better approach like the way using game.add+game.start
+      // TODO: this way of getting starting the game on click is pretty good, but may not be the best. research if there is a better approach like the way using game.add+game.start
       // pausing the game right on the first re-render so that all the game objects are loaded
       if (!this.gameStart) {
          this.game.pause()
@@ -113,11 +155,13 @@ export class DinoScene extends Phaser.Scene {
             this.player.anims.play('idle', true)
          }
 
-         this.mountainsBack.tilePositionX += 0.05
-         this.mountainsMid.tilePositionX += 0.2
-         this.mountainsFront.tilePositionX += 0.8
+         this.player.x += 2
 
-         this.platform.tilePositionX += 2
+         this.mountainsBack.tilePositionX = this.myCam.scrollX * 0.06
+         this.mountainsMid.tilePositionX = this.myCam.scrollX * 0.13
+         this.mountainsFront.tilePositionX = this.myCam.scrollX * 0.4
+
+         this.platform.tilePositionX = this.myCam.scrollX
 
          this.timeFromLastCactus += delta
 
@@ -173,10 +217,9 @@ export class DinoScene extends Phaser.Scene {
                this.scoreText.setColor(tween.color)
             },
          })
-
-         console.log(animation)
       }
 
+      this.gameOverText.visible = true
       this.gameOver = true
    }
 }
