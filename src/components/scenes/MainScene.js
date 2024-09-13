@@ -34,20 +34,41 @@ export class DinoScene extends Phaser.Scene {
 
    create() {
       this.mountainsBack = this.add
-         .tileSprite(0, this.height - 894, Number.MAX_SAFE_INTEGER, 894, 'mountains-back')
+         .tileSprite(0, this.height - 894, this.width, 894, 'mountains-back')
          .setOrigin(0, 0)
          .setScrollFactor(0)
 
       this.mountainsMid = this.add
-         .tileSprite(0, this.height - 770, Number.MAX_SAFE_INTEGER, 770, 'mountains-mid')
+         .tileSprite(0, this.height - 770, this.width, 770, 'mountains-mid')
          .setOrigin(0, 0)
          .setScrollFactor(0)
 
       this.mountainsFront = this.add
-         .tileSprite(0, this.height - 482, Number.MAX_SAFE_INTEGER, 482, 'mountains-front')
+         .tileSprite(0, this.height - 482, this.width, 482, 'mountains-front')
          .setOrigin(0, 0)
          .setScrollFactor(0)
 
+      this.obstacles = this.physics.add.group({
+         defaultKey: 'cactus',
+         active: false
+      })
+
+      this.timer = this.time.addEvent({
+         delay: 2000,
+         loop: true,
+         callback: () => {
+            const obstacle = this.obstacles.get(gameCamera.scrollX + width + 100, height - 150)
+
+            if(!obstacle) return
+
+            obstacle.setActive(true).setVisible(true)
+         }
+      })
+
+      console.log(this.timer)
+
+      this.timer.paused = true
+      
       // different approaches for the ground/platform
 
       // 1. wrap approach: it is very complicated, but better in terms of memory management
@@ -63,12 +84,23 @@ export class DinoScene extends Phaser.Scene {
 
       // 3.(best approach): making it a repeating tilesprite and following camera
       // height -25 because the player should collide with the bottom bound of the ground, not the top border
-      this.platform = this.add
-         .tileSprite(0, this.height - 100, Number.MAX_SAFE_INTEGER, -25, 'ground')
-         .setOrigin(0, 0)
-         .setScrollFactor(0)
+      
+      // platformGroup
+      this.platformGroup = this.physics.add.group({
+         defaultKey: 'ground',
+         maxSize: 5
+      })
 
-      this.physics.add.existing(this.platform, true)
+      this.time.addEvent({
+         delay: 2000,
+         loop: true,
+         callback: () => {
+            const obstacle = obstacleGroup.get(0, height - 100, 'ground', null, false)
+
+            obstacle.body.setImmovable().setAllowGravity(false)
+         }
+      })
+
 
       // TODO: make the player a seperate reusable component
       this.player = this.physics.add
@@ -82,6 +114,8 @@ export class DinoScene extends Phaser.Scene {
       this.myCam = this.cameras.main
       this.myCam.setBounds(0, 0, Number.MAX_SAFE_INTEGER, this.height)
       this.myCam.startFollow(this.player, true, 1, 1, -120)
+
+      this.myCam.setSize(this.width, this.height)
 
       this.scoreText = this.add
          .text(
@@ -163,13 +197,23 @@ export class DinoScene extends Phaser.Scene {
 
          this.platform.tilePositionX = this.myCam.scrollX
 
-         this.timeFromLastCactus += delta
+         // Phaser.Actions.IncX(this.obstacles.getChildren(), )
 
-         if (this.timeFromLastCactus > this.timeToNextCactus) {
-            this.timeToNextCactus = Phaser.Math.Between(800, 2000)
-            this.cactuses.push(new Cactus(this))
-            this.timeFromLastCactus = 0
-         }
+         this.obstacles.incX(2)
+
+         this.obstacles.children.iterate((obstacle) => {
+            if(obstacle.active && obstacle.x < gameCamera.scrollX) {
+               this.obstacles.killAndHide(obstacle)
+            }
+         })
+
+         // this.timeFromLastCactus += delta
+
+         // if (this.timeFromLastCactus > this.timeToNextCactus) {
+         //    this.timeToNextCactus = Phaser.Math.Between(800, 2000)
+         //    this.cactuses.push(new Cactus(this))
+         //    this.timeFromLastCactus = 0
+         // }
 
          this.loopTimer += 10
 
