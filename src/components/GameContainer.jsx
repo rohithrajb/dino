@@ -28,7 +28,7 @@ function GameContainer() {
             gravity: {
                y: 1700,
             },
-            // debug: true,
+            // debug: false,
          },
       },
       pixelArt: false,
@@ -39,7 +39,7 @@ function GameContainer() {
 
    let timeFromLastCactus = 0
    let timeToNextCactus = 2000
-   let loopTimer = 0 // essentially used as a means to record every 100ms
+   let loopTimer = 0
 
    let score = 0
    let highScore = !localStorage.getItem('highscore') ? '000' : localStorage.getItem('highscore')
@@ -56,19 +56,10 @@ function GameContainer() {
       scoreText,
       gameOverText,
       pressToPlayText
+      // allowLevelUpgrade = true
 
-   let captionTextFormat = `%1
-        Limit:    %2
-        Total:      %3
-        Active:   %4
-        Inactive: %5
-        Full:     %6`
-
-   let captionStyle = {
-      fill: '#7fdbff',
-      fontFamily: 'monospace',
-      lineSpacing: 4,
-   }
+   let gameSpeed = 0
+   let nextLevelPoints = 100
 
    function preload() {
       this.load.image('mountains-back', 'game-assets/mountains-back.png')
@@ -122,7 +113,6 @@ function GameContainer() {
       platformLoopCount = 2
 
       // player(dino)
-      // TODO: make the player a seperate reusable component
       player = this.physics.add
          .sprite(80, height - 100, 'dino')
          .setOrigin(0, 1)
@@ -155,7 +145,7 @@ function GameContainer() {
       // camera
       gameCamera = this.cameras.main
 
-      // score
+      // score text
       scoreText = this.add
          .text(width - (20 / 375) * width, (20 / 667) * height, 'HI ' + highScore + ' 0', {
             fontFamily: '"Press Start 2P"',
@@ -164,7 +154,7 @@ function GameContainer() {
          .setOrigin(1, 0)
          .setScrollFactor(0)
 
-      // press to play
+      // press to play text
       pressToPlayText = this.add
          .text(width / 2, height / 2, 'Press to play', {
             textAlign: 'center',
@@ -173,7 +163,7 @@ function GameContainer() {
          })
          .setOrigin(0.5, 0.5)
 
-      // game over
+      // game over text
       gameOverText = this.add
          .text(width / 2, height / 2, 'Game over', {
             textAlign: 'center',
@@ -210,10 +200,6 @@ function GameContainer() {
             this.scene.restart()
          }
       })
-
-      // GUI for platform and obstacle pools
-      this.caption = this.add.text(16, 16, '', captionStyle).setScrollFactor(0)
-      this.caption2 = this.add.text(16, 150, '', captionStyle).setScrollFactor(0)
    }
 
    function update(time, delta) {
@@ -223,28 +209,6 @@ function GameContainer() {
          this.game.pause()
       }
 
-      this.caption.setText(
-         Phaser.Utils.String.Format(captionTextFormat, [
-            'Obstacles',
-            obstacleGroup.maxSize,
-            obstacleGroup.getLength(),
-            obstacleGroup.countActive(true),
-            obstacleGroup.countActive(false),
-            obstacleGroup.isFull(),
-         ])
-      )
-
-      this.caption2.setText(
-         Phaser.Utils.String.Format(captionTextFormat, [
-            'Platforms',
-            platformGroup.maxSize,
-            platformGroup.getLength(),
-            platformGroup.countActive(true),
-            platformGroup.countActive(false),
-            platformGroup.isFull(),
-         ])
-      )
-
       if (gameStart && !gameOver) {
          if (player.body.onFloor()) {
             player.anims.play('run', true)
@@ -252,14 +216,20 @@ function GameContainer() {
             player.anims.play('idle', true)
          }
 
-         player.x += 2
+         if(score >= nextLevelPoints) {
+            gameSpeed += 1
+            nextLevelPoints += 100
+         }
 
-         gameCamera.scrollX += 2
+         player.x = player.x + (2 * delta/8 + gameSpeed)
+
+         gameCamera.scrollX = gameCamera.scrollX + (2 * delta/8 + gameSpeed)
 
          mountainsBack.tilePositionX = gameCamera.scrollX * 0.06
          mountainsMid.tilePositionX = gameCamera.scrollX * 0.13
          mountainsFront.tilePositionX = gameCamera.scrollX * 0.4
 
+         // TODO: research an alternative for this. iterating 2 object pools on every update is very costly in terms of memory
          platformGroup.children.iterate((platform) => {
             if (platform.active && platform.x < gameCamera.scrollX - 2600) {
                platformGroup.killAndHide(platform)
@@ -293,7 +263,7 @@ function GameContainer() {
          // }
 
          // increase the loop timer also using delta and check if it is still slow in production just as the game
-         loopTimer += 10
+         loopTimer += delta
 
          if (loopTimer > 100) {
             score += 1

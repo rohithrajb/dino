@@ -50,7 +50,7 @@ export class DinoScene extends Phaser.Scene {
 
       this.obstacles = this.physics.add.group({
          defaultKey: 'cactus',
-         active: false
+         active: false,
       })
 
       this.timer = this.time.addEvent({
@@ -59,16 +59,16 @@ export class DinoScene extends Phaser.Scene {
          callback: () => {
             const obstacle = this.obstacles.get(gameCamera.scrollX + width + 100, height - 150)
 
-            if(!obstacle) return
+            if (!obstacle) return
 
             obstacle.setActive(true).setVisible(true)
-         }
+         },
       })
 
       console.log(this.timer)
 
       this.timer.paused = true
-      
+
       // different approaches for the ground/platform
 
       // 1. wrap approach: it is very complicated, but better in terms of memory management
@@ -84,11 +84,11 @@ export class DinoScene extends Phaser.Scene {
 
       // 3.(best approach): making it a repeating tilesprite and following camera
       // height -25 because the player should collide with the bottom bound of the ground, not the top border
-      
+
       // platformGroup
       this.platformGroup = this.physics.add.group({
          defaultKey: 'ground',
-         maxSize: 5
+         maxSize: 5,
       })
 
       this.time.addEvent({
@@ -98,9 +98,8 @@ export class DinoScene extends Phaser.Scene {
             const obstacle = obstacleGroup.get(0, height - 100, 'ground', null, false)
 
             obstacle.body.setImmovable().setAllowGravity(false)
-         }
+         },
       })
-
 
       // TODO: make the player a seperate reusable component
       this.player = this.physics.add
@@ -118,15 +117,10 @@ export class DinoScene extends Phaser.Scene {
       this.myCam.setSize(this.width, this.height)
 
       this.scoreText = this.add
-         .text(
-            this.width - (20 / 375) * this.width,
-            (20 / 667) * this.height,
-            'HI ' + this.highScore + ' 0',
-            {
-               fontFamily: '"Press Start 2P"',
-               fontSize: 20,
-            }
-         )
+         .text(this.width - (20 / 375) * this.width, (20 / 667) * this.height, 'HI ' + this.highScore + ' 0', {
+            fontFamily: '"Press Start 2P"',
+            fontSize: 20,
+         })
          .setOrigin(1, 0)
          .setScrollFactor(0)
 
@@ -182,6 +176,8 @@ export class DinoScene extends Phaser.Scene {
          this.game.pause()
       }
 
+      global.gameTick++
+
       if (this.gameStart && !this.gameOver) {
          if (this.player.body.onFloor()) {
             this.player.anims.play('run', true)
@@ -202,7 +198,7 @@ export class DinoScene extends Phaser.Scene {
          this.obstacles.incX(2)
 
          this.obstacles.children.iterate((obstacle) => {
-            if(obstacle.active && obstacle.x < gameCamera.scrollX) {
+            if (obstacle.active && obstacle.x < gameCamera.scrollX) {
                this.obstacles.killAndHide(obstacle)
             }
          })
@@ -265,5 +261,29 @@ export class DinoScene extends Phaser.Scene {
 
       this.gameOverText.visible = true
       this.gameOver = true
+   }
+}
+
+function create() {
+   // create coins
+   for (var i = 0; i < vars.coinTotal; i++) {
+      var coin = game.coins.create(x, 0, 'coin')
+      coin.tween = game.add.tween(coin).to({ alpha: 0, y: 80, x: coin.x + game.width / 1.8 }, 1000, Phaser.Easing.Cubic.Out)
+      coin.pickedUp = false // set flag on each coin to prevent multiple update calls
+      coin.tween.onComplete.add(function (coin, tween) {
+         coin.kill()
+      })
+   }
+}
+function update() {
+   // add collide event for pickup
+   game.physics.arcade.overlap(player, coin, coinPickup, null, this)
+}
+function coinPickup(player, coin) {
+   if (!coin.pickedUp) {
+      // check if coin has already been picked up, if not proceed...
+      coin.pickedUp = true // then immediately set it to true so it is only called once
+      game.coinCount += 1
+      coin.tween.start()
    }
 }
