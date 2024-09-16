@@ -37,8 +37,8 @@ function GameContainer() {
    let gameStart = false
    let gameOver = false
 
-   let timeFromLastCactus = 0
-   let timeToNextCactus = 2000
+   // let timeFromLastCactus = 0
+   // let timeToNextCactus = 2000
    let loopTimer = 0
 
    let score = 0
@@ -56,7 +56,6 @@ function GameContainer() {
       scoreText,
       gameOverText,
       pressToPlayText
-      // allowLevelUpgrade = true
 
    let gameSpeed = 0
    let nextLevelPoints = 100
@@ -216,14 +215,15 @@ function GameContainer() {
             player.anims.play('idle', true)
          }
 
-         if(score >= nextLevelPoints) {
+         if (score >= nextLevelPoints) {
             gameSpeed += 1
             nextLevelPoints += 100
+            nextLevelAnimation()
          }
 
-         player.x = player.x + (2 * delta/8 + gameSpeed)
+         player.x = player.x + ((2 * delta) / 8 + gameSpeed)
 
-         gameCamera.scrollX = gameCamera.scrollX + (2 * delta/8 + gameSpeed)
+         gameCamera.scrollX = gameCamera.scrollX + ((2 * delta) / 8 + gameSpeed)
 
          mountainsBack.tilePositionX = gameCamera.scrollX * 0.06
          mountainsMid.tilePositionX = gameCamera.scrollX * 0.13
@@ -315,6 +315,22 @@ function GameContainer() {
 
       gameOverText.visible = true
       gameOver = true
+   }
+
+   function nextLevelAnimation() {
+      const tween = { color: 'white' }
+
+      gsap.to(tween, {
+         color: '#656566',
+         duration: 0.1,
+         repeat: 5,
+         yoyo: true,
+         immediateRender: false,
+         onUpdate: () => {
+            scoreText.setColor(tween.color)
+         },
+      })
+      console.log('hrllo')
    }
 
    useEffect(() => {
